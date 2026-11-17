@@ -1,4 +1,4 @@
-# AGENT-OS —— 个人 AI 操作系统
+# AGENT-OS ——  AI 操作系统
 
 > **Personal AI Operating System in plain text.**
 > 一套纯文本文件：全局宪法 + 项目 AGENTS.md + 观澜板 + skill 指针库。
