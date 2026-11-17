@@ -25,6 +25,10 @@
 - exo：个人 AI 装备库（skill 库来源之一），产出进 library/，涉公司业务走 LOCAL 不上传
 - portctl：端口管家（9123），启动/停止常驻服务前先问它（方式：进 portctl 目录开会话，或读它目录里的说明文件）
 
+## 全局 skill 库
+- 位置：本目录 skills/（索引 SKILLS.md）。**全局只登记一次，项目要用需在其 AGENTS.md 显式登记指针**——指针式继承，天生实时，无需同步
+- 当前可用：grill-me（需求澄清拷问，立即可用）；LinkDigest（待接 API key）
+
 ## 观澜板维护
 - 项目内/跨项目干活结束时：更新 ~/Developer/agent-os/INDEX.md 里对应行（3 行以内）
 - 无路径的一次性活动结束时：记入 INDEX.md"无主之地"分区（1-3 行）
