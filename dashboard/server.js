@@ -101,6 +101,14 @@ const server = http.createServer(async (req, res) => {
       skills: read(path.join(__dirname, 'skills', 'SKILLS.md')),
     }));
   }
+  if (url.pathname === '/api/file') {
+    const MAP = { manual: '使用手册.md', protocol: 'TEST-PROTOCOL.md', office: 'office/AGENTS.md', notes: 'notes/README.md', skills: 'skills/SKILLS.md' };
+    const f = MAP[url.searchParams.get('f')];
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    if (!f) return res.end(JSON.stringify({ ok: false, error: '未知文件' }));
+    const t = read(path.join(ROOT, f));
+    return res.end(JSON.stringify(t ? { ok: true, text: t } : { ok: false, error: '文件不存在: ' + f }));
+  }
   if (url.pathname === '/api/chat' && req.method === 'POST') {
     let body = '';
     req.on('data', c => body += c);

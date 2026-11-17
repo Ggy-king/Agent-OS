@@ -4,19 +4,27 @@
 <meta charset="UTF-8">
 <title>AGENT-OS 总控看板</title>
 <style>
-  :root{--bg:#0d0b14;--panel:#16121f;--line:#2a2340;--txt:#cfc9e0;--dim:#7a7390;--pri:#b388ff;--ok:#7ee787;--warn:#ffa657;}
+  :root{--bg:#0d0b14;--panel:#16121f;--line:#2a2340;--txt:#cfc9e0;--dim:#8a82a3;--pri:#b388ff;--ok:#7ee787;--warn:#ffa657;}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:var(--bg);color:var(--txt);font:14px/1.6 "SF Mono",Menlo,monospace;padding:18px}
-  h1{color:var(--pri);font-size:20px;letter-spacing:2px}
-  .sub{color:var(--dim);font-size:12px;margin:4px 0 16px}
-  .zone{margin-bottom:22px}
-  .zone>h2{color:var(--pri);font-size:15px;border-left:3px solid var(--pri);padding-left:8px;margin-bottom:10px}
-  .group>h3{color:var(--dim);font-size:12px;margin:10px 0 6px;letter-spacing:1px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+  body{background:var(--bg);color:var(--txt);font:14px/1.7 "SF Mono",Menlo,monospace;display:flex;height:100vh;overflow:hidden}
+  /* 左栏 */
+  #nav{width:190px;min-width:190px;background:#120e1b;border-right:1px solid var(--line);padding:14px 0;display:flex;flex-direction:column}
+  #nav .logo{color:var(--pri);font-weight:bold;padding:0 14px 14px;font-size:15px;letter-spacing:1px;border-bottom:1px solid var(--line)}
+  #nav .item{padding:9px 14px;cursor:pointer;color:var(--dim);font-size:13px;border-left:3px solid transparent}
+  #nav .item:hover{color:var(--txt)}
+  #nav .item.on{color:var(--pri);border-left-color:var(--pri);background:#1a1526}
+  #nav .foot{margin-top:auto;padding:10px 14px;font-size:10px;color:var(--dim);border-top:1px solid var(--line)}
+  /* 中栏 */
+  #main{flex:1;overflow-y:auto;padding:20px 26px}
+  #main h1{color:#fff;font-size:18px;margin-bottom:4px}
+  #main h2{color:var(--pri);font-size:14px;margin:18px 0 8px;border-left:3px solid var(--pri);padding-left:8px}
+  #main h3{color:var(--dim);font-size:12px;margin:12px 0 6px}
+  .sub{color:var(--dim);font-size:12px;margin-bottom:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin:10px 0}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;transition:border .15s}
   .card:hover{border-color:var(--pri)}
   .card .name{color:#fff;font-weight:bold}
-  .card .text{color:var(--txt);font-size:12px;margin-top:4px;word-break:break-all}
+  .card .text{font-size:12px;margin-top:4px;color:var(--txt);word-break:break-all}
   .card .extra{color:var(--dim);font-size:11px;margin-top:4px}
   .badge{display:inline-block;font-size:10px;padding:0 6px;border-radius:8px;border:1px solid var(--line);color:var(--dim);margin-left:6px}
   .badge.has{color:var(--ok);border-color:var(--ok)}
@@ -24,8 +32,18 @@
   .kv{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px}
   .kv b{color:var(--pri)}
   .log{color:var(--dim);font-size:11px}
-  #chatbox{position:fixed;right:18px;bottom:18px;width:380px;max-width:92vw;background:var(--panel);border:1px solid var(--pri);border-radius:10px;display:flex;flex-direction:column;height:420px}
-  #chathead{padding:8px 12px;color:var(--pri);font-size:13px;border-bottom:1px solid var(--line)}
+  /* markdown 渲染 */
+  .md h1,.md h2,.md h3{color:var(--pri)}
+  .md table{border-collapse:collapse;margin:8px 0;width:100%;font-size:12px}
+  .md td,.md th{border:1px solid var(--line);padding:4px 8px}
+  .md th{color:var(--pri)}
+  .md code{background:#1a1526;padding:1px 5px;border-radius:4px;color:var(--ok);font-size:12px}
+  .md pre{background:#1a1526;padding:10px;border-radius:8px;overflow-x:auto;margin:8px 0;border:1px solid var(--line)}
+  .md pre code{background:none;color:var(--txt)}
+  .md blockquote{border-left:3px solid var(--pri);padding-left:10px;color:var(--dim);margin:8px 0}
+  /* 右栏聊天 */
+  #chat{width:340px;min-width:340px;background:#120e1b;border-left:1px solid var(--line);display:flex;flex-direction:column}
+  #chathead{padding:10px 12px;color:var(--pri);font-size:13px;border-bottom:1px solid var(--line)}
   #msgs{flex:1;overflow-y:auto;padding:10px;font-size:12px}
   #msgs .m{margin-bottom:8px;white-space:pre-wrap;word-break:break-all}
   #msgs .u{color:#8ab4ff}
@@ -33,71 +51,153 @@
   #msgs .err{color:var(--warn)}
   #inputrow{display:flex;border-top:1px solid var(--line)}
   #input{flex:1;background:transparent;border:none;color:var(--txt);padding:10px;font:inherit;outline:none}
-  #send{background:var(--pri);color:#12081f;border:none;padding:0 16px;font-weight:bold;cursor:pointer}
+  #send{background:var(--pri);color:#12081f;border:none;padding:0 14px;font-weight:bold;cursor:pointer}
   .loading{color:var(--dim);animation:blink 1s infinite}
   @keyframes blink{50%{opacity:.3}}
+  /* 模态 */
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50}
+  #modal .box{background:var(--panel);border:1px solid var(--pri);border-radius:10px;padding:20px;max-width:560px;width:90%;max-height:70vh;overflow-y:auto}
 </style>
 </head>
 <body>
-<h1>⌘ AGENT-OS 总控看板</h1>
-<div class="sub">宪法 → 各家规矩 → 观澜板 ｜ 点卡片进项目，底部对话框直接跟总控管家说 ｜ <span id="meta"></span></div>
-
-<div class="zone" id="masterZone">
-  <h2>宪法（全局层）</h2>
-  <div id="masterBody"></div>
+<div id="nav">
+  <div class="logo">⌘ AGENT-OS</div>
+  <div class="item on" data-v="board">🗂 观澜板</div>
+  <div class="item" data-v="constitution">📜 宪法（全局层）</div>
+  <div class="item" data-v="nomans">🗓 无主之地</div>
+  <div class="item" data-v="office">📁 office（文档域）</div>
+  <div class="item" data-v="notes">🗒 notes（捕获站）</div>
+  <div class="item" data-v="skills">🧰 skill 库</div>
+  <div class="item" data-v="manual">📖 使用手册</div>
+  <div class="item" data-v="protocol">🧪 实验记录</div>
+  <div class="foot" id="foot">服务检测中…</div>
 </div>
-
-<div class="zone" id="indexZone"><h2>观澜板（项目地图）</h2><div id="indexBody"></div></div>
-<div class="zone" id="skillZone"><h2>全局 skill 库</h2><div id="skillBody"></div></div>
-
-<div id="chatbox">
+<div id="main"><div class="loading">加载中…</div></div>
+<div id="chat">
   <div id="chathead">🗂 总控管家（example-model）</div>
-  <div id="msgs"><div class="a">输入任意总控级问题：看状态、路由任务、登记无主之地…</div></div>
+  <div id="msgs"><div class="a">总控级问题直接问：看状态、路由任务、登记无主之地…</div></div>
   <div id="inputrow"><input id="input" placeholder="跟管家说点什么…（Enter 发送）"><button id="send">发</button></div>
 </div>
+<div id="modal" onclick="this.style.display='none'"><div class="box" onclick="event.stopPropagation()"><div id="modalBody"></div></div></div>
 
 <script>
+let STATE=null;
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 function badgeFor(t){ if(/已建|已有/.test(t)&&/草稿/.test(t))return'<span class="badge draft">AGENTS.md 草稿</span>';
   if(/AGENTS.md 已有|已定稿/.test(t))return'<span class="badge has">AGENTS.md ✓</span>';
   if(/草稿/.test(t))return'<span class="badge draft">草稿</span>';return''; }
-
-async function load(){
-  const s = await (await fetch('/api/state')).json();
-  document.getElementById('meta').textContent = s.master.isTemplate ? '⚠️ GLOBAL-MASTER 还是模板——请先 cp 模板生成实例' : '实例已生成 ✓';
-  const mb = document.getElementById('masterBody');
-  const sec=(t,arr)=>arr&&arr.length?`<div class="kv"><b>${t}</b><br>${arr.map(x=>'· '+x).join('<br>')}</div>`:'';
-  mb.innerHTML = sec('通用纪律',s.master.discipline)+sec('项目关联图谱',s.master.graph)+sec('全局 skill 库',s.master.skill)+sec('观澜板维护',s.master.board);
-
-  const ib = document.getElementById('indexBody');
-  ib.innerHTML = s.index.map(z=>`<div class="zone"><h3 style="color:#fff;font-size:13px;margin:8px 0">${z.title}</h3>
-    ${z.desc.map(d=>`<div class="log">· ${d}</div>`).join('')}
-    ${z.groups.map(g=>`<div class="group"><h3>▸ ${g.title}</h3><div class="grid">
-      ${g.cards.map(c=>`<div class="card" onclick="openProject('${c.name}')"><span class="name">${c.name}</span>${badgeFor(c.text+c.extra.join(''))}<div class="text">${c.text}</div>${c.extra.map(e=>`<div class="extra">${e}</div>`).join('')}</div>`).join('')}
-    </div></div>`).join('')}
-    ${z.loose&&z.loose.length?`<div class="grid">${z.loose.map(c=>`<div class="card"><span class="name">${c.name}</span><div class="text">${c.text}</div>${c.extra.map(e=>`<div class="extra">${e}</div>`).join('')}</div>`).join('')}</div>`:''}
-  </div>`).join('');
-
-  const table = s.skills.split('\n').filter(l=>/^\|/.test(l)&&!/^\|\s*skill/.test(l)&&!/^\|[-\s|]+$/.test(l));
-  document.getElementById('skillBody').innerHTML = '<div class="kv">'+table.map(r=>r.replace(/^\||\|$/g,'').trim()).join('<br>')+'</div>';
+/* 极简 md 渲染：标题/列表/表格/粗体/代码块 */
+function md(t){
+  const lines=esc(t).split('\n'); let out='',inCode=false,inTable=false,inList=false;
+  const closeList=()=>{if(inList){out+='</ul>';inList=false}};
+  const closeTable=()=>{if(inTable){out+='</table>';inTable=false}};
+  for(let l of lines){
+    if(l.startsWith('```')){closeList();closeTable();inCode=!inCode;out+=inCode?'<pre><code>':'</code></pre>';continue}
+    if(inCode){out+=l+'\n';continue}
+    if(/^\|/.test(l)){
+      const cells=l.split('|').slice(1,-1).map(c=>c.trim());
+      if(/^[\s\-|]+$/.test(l)){continue}
+      if(!inTable){out+='<table>';inTable=true;out+='<tr>'+cells.map(c=>`<th>${c.replace(/\*\*/g,'')}</th>`).join('')+'</tr>';continue}
+      out+='<tr>'+cells.map(c=>`<td>${c.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</td>`).join('')+'</tr>';continue}
+    closeTable();
+    if(/^\|/.test(l))continue;
+    if(/^###\s/.test(l)){closeList();out+=`<h3>${l.slice(4)}</h3>`;continue}
+    if(/^##\s/.test(l)){closeList();out+=`<h2>${l.slice(3)}</h2>`;continue}
+    if(/^#\s/.test(l)){closeList();out+=`<h1>${l.slice(2)}</h1>`;continue}
+    if(/^-\s/.test(l)){if(!inList){out+='<ul>';inList=true}out+=`<li>${l.slice(2).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</li>`;continue}
+    closeList();
+    if(/^>\s?/.test(l)){out+=`<blockquote>${l.replace(/^>\s?/,'')}</blockquote>`;continue}
+    if(l.trim()===''){continue}
+    out+=`<div>${l.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>`;
+  }
+  closeList();closeTable();
+  return out;
 }
-function openProject(name){ alert(name + '\n\n打开方式：编辑器开 ' + (name==='agent-os'||name==='agent-os-lab' ? '~/Developer/'+name : '该项目目录') + '，或点 Office/Notes 对应域。\n\n细节以该项目 AGENTS.md 为准。'); }
+const FILEMAP={manual:'使用手册.md',protocol:'TEST-PROTOCOL.md',office:'office/AGENTS.md',notes:'notes/README.md',skills:'skills/SKILLS.md'};
+
+function viewBoard(){
+  const s=STATE; let h='<h1>🗂 观澜板</h1><div class="sub">每项目 3 行 · 点卡片看详情 · AI 干完活自更新</div>';
+  s.index.forEach(z=>{
+    h+=`<h2>${esc(z.title)}</h2>${z.desc.map(d=>`<div class="log">· ${esc(d)}</div>`).join('')}`;
+    z.groups.forEach(g=>{
+      h+=`<h3>▸ ${esc(g.title)}</h3><div class="grid">`;
+      h+=g.cards.map(c=>`<div class="card" onclick="detail('${esc(c.name)}')"><span class="name">${esc(c.name)}</span>${badgeFor(c.text+c.extra.join(''))}<div class="text">${esc(c.text)}</div>${c.extra.map(e=>`<div class="extra">${esc(e)}</div>`).join('')}</div>`).join('');
+      h+='</div>';
+    });
+    (z.loose||[]).forEach(c=>{h+=`<div class="card" onclick="detail('${esc(c.name)}')"><span class="name">${esc(c.name)}</span><div class="text">${esc(c.text)}</div></div>`});
+  });
+  return h;
+}
+function detail(name){
+  const s=STATE; let hit=null;
+  s.index.forEach(z=>{ (z.loose||[]).forEach(c=>{if(c.name===name)hit=c}); z.groups.forEach(g=>g.cards.forEach(c=>{if(c.name===name)hit=c})) });
+  if(!hit)return;
+  document.getElementById('modalBody').innerHTML=`<h2 style="color:var(--pri)">${esc(hit.name)}</h2><div class="kv">${esc(hit.text)}</div>${hit.extra.map(e=>`<div class="kv">${esc(e)}</div>`).join('')}<div class="log">打开方式：编辑器打开该项目目录（agent-os 项目则在本目录）。细节以该项目 AGENTS.md 为准。</div>`;
+  document.getElementById('modal').style.display='flex';
+}
+function viewMaster(){
+  const s=STATE.master; let h='<h1>📜 宪法（全局层）</h1>';
+  if(s.isTemplate)h+='<div class="kv" style="border-color:var(--warn)"><b style="color:var(--warn)">⚠️ GLOBAL-MASTER 还是模板</b>——请先复制模板生成实例再填</div>';
+  const sec=(t,arr)=>arr&&arr.length?`<h2>${t}</h2>${arr.map(x=>`<div class="kv">· ${esc(x)}</div>`).join('')}`:'';
+  return h+sec('通用纪律（所有 AI 必守）',s.discipline)+sec('项目关联图谱',s.graph)+sec('全局 skill 库',s.skill)+sec('观澜板维护',s.board);
+}
+function viewNomans(){
+  const z=STATE.index.find(z=>/无主之地/.test(z.title));
+  let h='<h1>🗓 无主之地（编年史）</h1><div class="sub">无路径活动记这里——宪法放真理，这里放历史</div>';
+  if(!z)return h+'<div class="log">暂无</div>';
+  return h+(z.desc.map(d=>`<div class="kv">🗓 ${esc(d)}</div>`).join('')||'<div class="log">暂无记录</div>')+(z.loose||[]).map(c=>`<div class="kv"><b>${esc(c.name)}</b><br>${esc(c.text)}</div>`).join('');
+}
+function viewFile(title){
+  return `<h1>${title}</h1><div class="md" id="fbody"><div class="loading">加载中…</div></div>`;
+}
+function viewSkills(){
+  return `<h1>🧰 全局 skill 库</h1><div class="sub">全局登记一次 · 项目要用在项目 AGENTS.md 登记一行指针 · 指针式实时</div>`+
+  `<div class="md">${md(STATE.skills)}</div><h2>候选区说明</h2><div class="kv">候选区项目亲测后才转正（登记纪律）。mattpocock 6 项候选：caveman 省 75% token / grill-with-docs / diagnose / zoom-out / git-guardrails / write-a-prd。</div>`;
+}
+const VIEWS={
+  board:()=>viewBoard(),
+  constitution:()=>viewMaster(),
+  nomans:()=>viewNomans(),
+  office:()=>viewFile('📁 office（文档域）'),
+  notes:()=>viewFile('🗒 notes（捕获站）'),
+  skills:()=>viewSkills(),
+  manual:()=>viewFile('📖 使用手册（大白话）'),
+  protocol:()=>viewFile('🧪 实验记录'),
+};
+function show(v){
+  document.querySelectorAll('#nav .item').forEach(e=>e.classList.remove('on'));
+  document.querySelector(`#nav .item[data-v="${v}"]`).classList.add('on');
+  document.getElementById('main').innerHTML=VIEWS[v]();
+  const f=FILEMAP[v];
+  if(f){ fetch('/api/file?f='+v).then(r=>r.json()).then(d=>{
+      const b=document.getElementById('fbody');
+      if(b) b.innerHTML=d.ok?md(d.text):'<div class="err">'+esc(d.error)+'</div>';
+    }).catch(e=>{const b=document.getElementById('fbody'); if(b)b.innerHTML='<div class="err">'+e+'</div>'}); }
+}
+document.querySelectorAll('#nav .item').forEach(el=>el.onclick=()=>show(el.dataset.v));
+async function boot(){
+  const s=await (await fetch('/api/state')).json(); STATE=s;
+  document.getElementById('foot').innerHTML=s.master.isTemplate?'⚠️ 实例未生成':'✅ 实例已生成<br>观澜板 '+s.index.length+' 大区';
+  document.getElementById('main').innerHTML=VIEWS.board();
+}
+boot();
+show('board');
 
 const msgs=document.getElementById('msgs'), input=document.getElementById('input');
 async function send(){
   const t=input.value.trim(); if(!t)return; input.value='';
-  msgs.insertAdjacentHTML('beforeend',`<div class="m u">你：${t}</div>`);
+  msgs.insertAdjacentHTML('beforeend',`<div class="m u">你：${esc(t)}</div>`);
   const lid='l'+Date.now(); msgs.insertAdjacentHTML('beforeend',`<div class="m loading" id="${lid}">管家思考中…</div>`);
   msgs.scrollTop=msgs.scrollHeight;
   try{
     const r=await (await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:t}]})})).json();
     document.getElementById(lid).remove();
-    msgs.insertAdjacentHTML('beforeend',`<div class="m ${r.ok?'a':'err'}">管家：${r.ok?r.reply:r.error}</div>`);
+    msgs.insertAdjacentHTML('beforeend',`<div class="m ${r.ok?'a':'err'}">管家：${r.ok?esc(r.reply):esc(r.error)}</div>`);
   }catch(e){ document.getElementById(lid).remove(); msgs.insertAdjacentHTML('beforeend',`<div class="m err">管家：连接失败 ${e}</div>`); }
   msgs.scrollTop=msgs.scrollHeight;
 }
 document.getElementById('send').onclick=send;
 input.addEventListener('keydown',e=>{if(e.key==='Enter')send()});
-load();
 </script>
 </body>
 </html>
