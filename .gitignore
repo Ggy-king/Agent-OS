@@ -5,5 +5,12 @@ GLOBAL-MASTER.md
 # 实验场不在本仓库（单独目录）
 agent-os-lab/
 
-# API key
-dashboard/data/keys.json
+# 运行时数据/凭据/日志（整目录，含 keys.json / config.json / patrol.json）
+dashboard/data/
+dashboard/*.log
+
+# Python 缓存
+__pycache__/
+
+# office 域：规矩文档（AGENTS.md 等）上传，真实个人产出（各事项子文件夹）留本地
+office/*/

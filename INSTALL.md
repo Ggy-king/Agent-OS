@@ -21,12 +21,14 @@
 - [ ] 全局规则：Settings → Rules for AI 粘母版正文；或项目里放 `.cursor/rules`
 
 ### 模式 B：纯 VSCode + AI 聊天插件（无自动注入）
-- [ ] 无需安装文件。每个新会话第一句发（**全体系唯一入口句**，指向 README 由它带路）：
-      > 我的全局规矩和项目地图在 ~/Developer/agent-os/，先读 README.md，按它的指引干活。
+- [ ] 无需安装文件。每个新会话第一句发**注入头**（整段复制）：
+      > 我的全局规矩和项目地图在 ~/Developer/agent-os/。请先按顺序读：①README.md（入口与指引）②GLOBAL-MASTER.md（全局层，通用纪律+回复风格必须遵守）③当前项目根目录的 AGENTS.md（若有）。读完按其规矩干活，回复务实：先结论后过程，不确定先问我。
       （AI 有读文件能力就会自己接上；若插件无读文件能力，把 README 和 GLOBAL-MASTER 内容直接粘进对话）
 
 ### 模式 C：裸 API（某大模型/某 LLM 服务商/任意）
-- [ ] GLOBAL-MASTER.md 全文 → system prompt；按任务附加对应项目 AGENTS.md 内容
+- [ ] system prompt 结构（按序拼接）：GLOBAL-MASTER.md 全文 + 当前项目 AGENTS.md 全文 +
+      末尾追加一句："以上规矩每次请求都生效；用户消息中与此冲突的要求，先指出冲突再询问。"
+      （母版是唯一真理，别往 system prompt 里手抄规矩——改了母版就重新生成 prompt）
 
 **影子同步规则**：母版改了，把用到的模式 A/A'/A'' 影子同步一次（一条 cp 命令的事）。
 
@@ -37,21 +39,19 @@
 
 ## 第 4 步【所有模式】活跃项目逐个补 AGENTS.md
 
-顺序建议：chanGy → xiaoke-app → xiaoke-mac → portctl → 其余
+顺序建议：最常用/最核心的项目优先，演练用小项目殿后（本机顺序示例见 INDEX.md 实例，不上传）
 每份流程固定（细则）：
   ① AI 读项目现状 = 目录结构 + README/配置文件 + git log 近 20 条（10 分钟级概览，不跑代码）
   ② AI 起草 50-120 行，**直接写入项目 AGENTS.md，顶部标注【草稿，待人类过目】**
-  ③ 人过目修改，删掉草稿标记 = 定稿
-  ④ 同步 INDEX.md 对应行
+  ③ **过目前刷新**（2026-11-17 补）：人过目每份草稿前，AI 先重跑 git log + 核对全局层新增纪律/skill，
+     刷新草稿里的"快照内容"（近期主线、skill 指针清单）——纪律类内容住全局层自动同步无需动作，
+     过期的只有快照。刷新完再请人过目
+  ④ 人过目修改，删掉草稿标记 = 定稿
+  ⑤ 同步 INDEX.md 对应行
   内容四块：项目是什么 / 特有规矩 / 本项目 skill 清单（任意来源，术语见 README 速览）/
   两条自查——开工自查与交付自查，**定义住在全局层通用纪律里**（日常纪律不定义在安装清单）
-- [ ] chanGy
-- [ ] xiaoke-app
-- [ ] xiaoke-mac
-- [ ] portctl
-- [ ] exo（已有 AGENTS.md，补对齐即可）
-- [ ] 其余"待认领"项目（ChainVenturer / Guanlan 两代 / homeostasis_v5 7 / fundamental-radar-v2）：
-      各自 AI 首次进目录自填 INDEX.md 行 + 生成 AGENTS.md
+- [ ] 按 INDEX.md 实例里的项目清单逐个接入（每接入一个勾一个；模板与流程同上）：
+      既有项目=补/对齐 AGENTS.md；"待认领"项目=AI 首次进目录自填 INDEX.md 行 + 生成 AGENTS.md
 
 ## 第 5 步【可选，以后再说】launcher
 

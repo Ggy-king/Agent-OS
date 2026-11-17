@@ -57,6 +57,9 @@
   /* 模态 */
   #modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50}
   #modal .box{background:var(--panel);border:1px solid var(--pri);border-radius:10px;padding:20px;max-width:560px;width:90%;max-height:70vh;overflow-y:auto}
+  .openbtn{background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:12px}
+  .openbtn:hover{border-color:var(--pri);color:var(--pri)}
+  .openbtn.pri{background:var(--pri);color:#12081f;font-weight:bold}
 </style>
 </head>
 <body>
@@ -70,6 +73,7 @@
   <div class="item" data-v="skills">🧰 skill 库</div>
   <div class="item" data-v="manual">📖 使用手册</div>
   <div class="item" data-v="protocol">🧪 实验记录</div>
+  <div class="item" data-v="settings">⚙ 设置</div>
   <div class="foot" id="foot">服务检测中…</div>
 </div>
 <div id="main"><div class="loading">加载中…</div></div>
@@ -132,8 +136,85 @@ function detail(name){
   const s=STATE; let hit=null;
   s.index.forEach(z=>{ (z.loose||[]).forEach(c=>{if(c.name===name)hit=c}); z.groups.forEach(g=>g.cards.forEach(c=>{if(c.name===name)hit=c})) });
   if(!hit)return;
-  document.getElementById('modalBody').innerHTML=`<h2 style="color:var(--pri)">${esc(hit.name)}</h2><div class="kv">${esc(hit.text)}</div>${hit.extra.map(e=>`<div class="kv">${esc(e)}</div>`).join('')}<div class="log">打开方式：编辑器打开该项目目录（agent-os 项目则在本目录）。细节以该项目 AGENTS.md 为准。</div>`;
+  const app=localStorage.getItem('ao_open_app')||'code';
+  document.getElementById('modalBody').innerHTML=`<h2 style="color:var(--pri)">${esc(hit.name)}</h2><div class="kv">${esc(hit.text)}</div>${hit.extra.map(e=>`<div class="kv">${esc(e)}</div>`).join('')}
+  <h2 style="margin-top:12px">打开方式</h2><div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="openbtn" onclick="openDir('${esc(name)}','code')">💻 VSCode</button>
+    <button class="openbtn" onclick="openDir('${esc(name)}','finder')">📁 Finder</button>
+    <button class="openbtn" onclick="openDir('${esc(name)}','terminal')">⌨ 终端</button>
+  </div><div id="openResult" class="log" style="margin-top:8px"></div>
+  <div class="log" style="margin-top:6px">细节以该项目 AGENTS.md 为准。</div>`;
   document.getElementById('modal').style.display='flex';
+  if(app!=='code')document.getElementById('openResult').textContent='默认打开方式：'+app;
+}
+async function openDir(name,app){
+  localStorage.setItem('ao_open_app',app);
+  const r=await (await fetch('/api/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,app})})).json();
+  const el=document.getElementById('openResult');
+  if(el) el.innerHTML=r.ok?'<span style="color:var(--ok)">✓ 已在'+(app==='code'?'VSCode':app==='finder'?'Finder':'终端')+'中打开 '+(r.dir||'')+'</span>':'<span style="color:var(--warn)">'+esc(r.error||'失败')+'</span>';
+}
+/* ---------- 设置页 ---------- */
+const PRESETS={
+  provider:{label:'某 LLM 服务商 MODEL',baseURL:'https://https://your-llm-endpoint.example/v1',model:'example-model'},
+  某大模型:{label:'某大模型',baseURL:'https://api.某大模型.com',model:'某大模型-chat'},
+  某某:{label:'某某（月之暗面）',baseURL:'https://api.某 LLM.cn/v1',model:'某 LLM-v1-8k'},
+  openai:{label:'OpenAI',baseURL:'https://api.openai.com/v1',model:'gpt-4o-mini'},
+  custom:{label:'自定义（OpenAI 兼容）',baseURL:'',model:''},
+};
+async function viewSettings(){
+  let cur=null,codeOk=false;
+  try{ const d=await (await fetch('/api/config')).json(); cur=d.config; codeOk=d.codeInstalled; }catch{}
+  const h=`<h1>⚙ 设置</h1>
+  <h2>管家大脑（换 API 就在这）</h2>
+  <div class="kv">管家聊天用哪个模型由这里决定。只要是 <b>OpenAI 兼容接口</b>（某 LLM 服务商/某大模型/某某/OpenAI/本地 Ollama 等，接口格式大差大不差）选预设填 key 即可；key 存本机 <code>dashboard/data/config.json</code>，不进 git。</div>
+  <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;margin:10px 0;max-width:640px;align-items:center">
+    <div class="log">预设</div><select id="cfgPreset" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">${Object.entries(PRESETS).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select>
+    <div class="log">baseURL</div><input id="cfgURL" placeholder="https://https://your-llm-endpoint.example/v1" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">
+    <div class="log">模型名</div><input id="cfgModel" placeholder="example-model" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">
+    <div class="log">API Key</div><input id="cfgKey" type="password" placeholder="${cur&&cur.hasKey?'已存 '+cur.keyMask+'（换新直接覆盖填）':'sk-...'}" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">
+  </div>
+  <div style="display:flex;gap:8px;max-width:640px">
+    <button class="openbtn pri" onclick="saveCfg()">保存</button>
+    <button class="openbtn" onclick="testCfg()">测一下</button>
+    <span id="cfgMsg" class="log" style="align-self:center"></span>
+  </div>
+  ${cur?`<div class="kv" style="margin-top:10px;max-width:640px">当前生效：<b>${esc(cur.baseURL)}</b> · <b>${esc(cur.model)}</b> · key ${esc(cur.keyMask)}</div>`:'<div class="kv" style="margin-top:10px;max-width:640px">当前未配置——管家在用内置探测的某 LLM 服务商 key（如有）。</div>'}
+  <h2>卡片默认打开方式</h2>
+  <div class="kv">点项目卡片弹窗里的按钮会记住你的选择；VSCode ${codeOk?'<span style="color:var(--ok)">已安装 ✓</span>':'<span style="color:var(--warn)">未检测到（/Applications 下没有，装好后再来）</span>'}。</div>
+  <h2>说明</h2>
+  <div class="kv log">换模型对项目零影响：这套体系（宪法/AGENTS.md/观澜板/skill 库）全是纯文本，模型只是读它的脑子。本地 Ollama 也行：baseURL 填 http://127.0.0.1:11434/v1，key 随便填个 ollama。</div>
+  <h2>夜间巡检（每晚 23:00 自动跑）</h2>
+  <div class="kv log">git log 哨兵：扫 ~/Developer 全部项目近 7 天提交（--all 含所有分支和其他协作者的提交）。发现"项目动了但观澜板卡片长期没动"的，就是下次会话该补卡片的清单。日常不需要谁操心，这里自动兜底。</div>
+  <div id="patrolBox" class="kv" style="max-width:640px">加载中…</div>`;
+  document.getElementById('main').innerHTML=h;
+  const sel=document.getElementById('cfgPreset');
+  if(cur&&cur.baseURL){ const hit=Object.entries(PRESETS).find(([k,v])=>v.baseURL===cur.baseURL); sel.value=hit?hit[0]:'custom'; document.getElementById('cfgURL').value=cur.baseURL; document.getElementById('cfgModel').value=cur.model; }
+  sel.onchange=()=>{ const p=PRESETS[sel.value]; if(p.baseURL){document.getElementById('cfgURL').value=p.baseURL;document.getElementById('cfgModel').value=p.model;} else {document.getElementById('cfgURL').value='';document.getElementById('cfgModel').value='';} };
+  renderPatrol();
+}
+async function renderPatrol(run){
+  const box=document.getElementById('patrolBox'); if(!box)return;
+  try{
+    const d=await (await fetch('/api/patrol'+(run?'?run=1':''))).json();
+    if(!d.ok||!d.report){ box.innerHTML='还没有巡检报告 <button class="openbtn" onclick="renderPatrol(true)">立即巡检</button>'; return; }
+    const r=d.report, act=r.projects.filter(p=>p.git&&p.commits7d>0), quiet=r.projects.filter(p=>!p.git||((p.commits7d||0)===0&&!p.error)), bad=r.projects.filter(p=>p.error);
+    box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span>上次巡检：<b>${esc(r.at)}</b> · 活跃 ${act.length} / 安静 ${quiet.length}${bad.length?` / 异常 <span style="color:var(--warn)">${bad.length}</span>`:''}</span><button class="openbtn" onclick="renderPatrol(true)">立即巡检</button></div>`+
+      (act.length?act.map(p=>`<div class="log">· <b>${esc(p.name)}</b> 近7天 ${p.commits7d} commits${p.last?` — ${esc(p.last)}`:''}</div>`).join(''):'<div class="log">近 7 天所有项目都安静</div>')+
+      (bad.length?bad.map(p=>`<div class="log" style="color:var(--warn)">⚠ ${esc(p.name)}: ${esc(p.error)}</div>`).join(''):'');
+  }catch(e){ box.innerHTML='<span style="color:var(--warn)">巡检加载失败 '+esc(String(e))+'</span>'; }
+}
+async function saveCfg(){
+  const m=document.getElementById('cfgMsg');
+  const body={baseURL:document.getElementById('cfgURL').value,model:document.getElementById('cfgModel').value,apiKey:document.getElementById('cfgKey').value.trim()};
+  if(!body.apiKey){ m.textContent='key 没填（已存的 key 不会显示原文，换 key 才填）'; return; }
+  const r=await (await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  m.innerHTML=r.ok?'<span style="color:var(--ok)">✓ 已保存，即刻生效</span>':'<span style="color:var(--warn)">'+esc(r.error)+'</span>';
+  if(r.ok)setTimeout(()=>show('settings'),1200);
+}
+async function testCfg(){
+  const m=document.getElementById('cfgMsg'); m.textContent='测连中…';
+  const r=await (await fetch('/api/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({baseURL:document.getElementById('cfgURL').value,model:document.getElementById('cfgModel').value,apiKey:document.getElementById('cfgKey').value.trim()})})).json();
+  m.innerHTML=r.ok?'<span style="color:var(--ok)">✓ 通了（'+r.ms+'ms）：'+esc(r.sample)+'</span>':'<span style="color:var(--warn)">'+esc(r.error)+'</span>';
 }
 function viewMaster(){
   const s=STATE.master; let h='<h1>📜 宪法（全局层）</h1>';
@@ -163,6 +244,7 @@ const VIEWS={
   skills:()=>viewSkills(),
   manual:()=>viewFile('📖 使用手册（大白话）'),
   protocol:()=>viewFile('🧪 实验记录'),
+  settings:()=>viewSettings(),
 };
 function show(v){
   document.querySelectorAll('#nav .item').forEach(e=>e.classList.remove('on'));

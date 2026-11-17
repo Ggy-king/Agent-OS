@@ -10,7 +10,8 @@
   问状态、路由任务、登记无主之地，直接在面板里说
 
 **API key**：`dashboard/data/keys.json` 填 `{"provider":"你的某 LLM 服务商key"}`（本文件已 gitignore）；
-若 EXO 或 xiaoke-mac 的 `data/keys.json` 已有某 LLM 服务商 key，服务会自动探测复用，无需再填。
+想复用本机其它项目已有的 key：把那些 keys.json 的绝对路径列进 `dashboard/data/key-paths.json`
+（格式 `["~/some/path/keys.json"]`，本机文件已 gitignore，不上传）。
 没 key 时其余看板功能照常，仅管家对话不可用。
 
 **依赖**：零依赖，Node ≥ 18。数据全部来自上级目录的 md 文件——**改了 INDEX/GLOBAL-MASTER

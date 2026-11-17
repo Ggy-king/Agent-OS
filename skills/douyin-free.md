@@ -25,6 +25,14 @@
 
 ## 本机接入状态
 
-- **未安装**。装任何一个前需确认依赖（Python 3.10+、ffmpeg、faster-whisper）——
-  按全局纪律"不擅自装依赖，先问"，等人类点头再装
-- 装好后在 SKILLS.md 登记转正，并把 LinkDigest 档案归档
+- ✅ **已装可用**（2026-11-17）：方案①的精简自研版 `douyin2text.py`，真实抖音链接实测全链路通过（下载→转录→文案）
+- 依赖实装：ffmpeg 9.0.2（brew）、yt-dlp 2026.10.26（python3.12 pip --user）、faster-whisper（pip --user）
+- 用法：`python3 skills/douyin2text.py <链接> [--model small]`，输出=视频标题+口播文案
+
+## 实战记录（2026-11-17 首战，4 个坑全踩过）
+
+1. **系统 Python 3.9 锁死 yt-dlp 老版本**→ 用 brew 的 python3.12 `pip install --user --break-system-packages` 装新版；脚本自动探测新版解释器
+2. **"Fresh cookies needed" 报错是误导**：yt-dlp 抛它时根本没查 cookie，真死因=抖音 a_bogus 签名算法更新（yt-dlp 已知回归，curl_cffi TLS 伪装也救不了）→ **绕行路=iesdouyin.com/share/video/{id} 分享页解析**（脚本已内置为第三通道）
+3. **分享页必须手机 UA** 才吐 SSR 数据（`window._ROUTER_DATA` JSON），桌面 UA 只回 JS 壳；cookie 借 yt-dlp 的 Chrome 解密机制（`extract_cookies_from_browser`）
+4. **HuggingFace 下载模型国内超时** → 脚本内置 `HF_ENDPOINT=https://hf-mirror.com` 国内镜像
+5. 网络卡顿记得走本机代理（端口见全局层纪律的本机实例，各机不同）
