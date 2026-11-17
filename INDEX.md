@@ -17,7 +17,7 @@
 - **fundamental-radar-v2** — 基本面雷达（Python），小工具；待认领
 
 ### 个人基建
-- **agent-os** — 这台电脑的 AI 总控母版（原生，git 基线 v1.0；实验一律在 agent-os-lab 做）
+- **agent-os** — 这台电脑的 AI 总控母版（原生，git 基线 v1.0；实验一律在 agent-os-lab 做）；**可视化看板已上线**：dashboard/ 目录 `node server.js` → http://127.0.0.1:9140（卡片墙+管家对话）
 - **agent-os-lab** — agent-os 实验场：架构试验性改动只在这里迭代，验证通过经人拍板才合并回原生
 - **exo** — 全能装备库（skill 库来源之一）：prompts/ 装备 + 软件容器（7310）+ library/ 素材库；**AGENTS.md 已有**（早期版本，后续按新模板对齐）
 - **portctl** — 端口管家（9123）：零依赖单文件 Node，扫描/停止/一键拉起本机服务；AGENTS.md 已建（草稿待人过目）。启动/停止别的服务前先问它
