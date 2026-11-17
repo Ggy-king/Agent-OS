@@ -98,7 +98,7 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({
       index: parseIndex(read(path.join(ROOT, 'INDEX.md'))),
       master: parseMaster(read(path.join(ROOT, 'GLOBAL-MASTER.md'))),
-      skills: read(path.join(__dirname, 'skills', 'SKILLS.md')),
+      skills: read(path.join(ROOT, 'skills', 'SKILLS.md')),
     }));
   }
   if (url.pathname === '/api/file') {

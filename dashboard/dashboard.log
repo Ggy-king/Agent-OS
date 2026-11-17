@@ -1,1 +1,17 @@
 [agent-os 看板] http://127.0.0.1:9140  （Ctrl+C 停止）
+node:_http_server:368
+    throw new ERR_HTTP_HEADERS_SENT('write');
+          ^
+
+Error [ERR_HTTP_HEADERS_SENT]: Cannot write headers after they are sent to the client
+    at ServerResponse.writeHead (node:_http_server:368:11)
+    at Server.<anonymous> (/Users/ggy/Developer/agent-os/dashboard/server.js:126:15)
+    at Server.emit (node:events:509:20)
+    at parserOnIncoming (node:_http_server:1314:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17) {
+  code: 'ERR_HTTP_HEADERS_SENT'
+}
+
+Node.js v26.0.0
+[agent-os 看板] http://127.0.0.1:9140  （Ctrl+C 停止）
+[agent-os 看板] http://127.0.0.1:9140  （Ctrl+C 停止）
