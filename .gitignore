@@ -1,0 +1,6 @@
+# 本机实例文件——各电脑各自生成，不上传（模板见 *.template.md）
+INDEX.md
+GLOBAL-MASTER.md
+
+# 实验场不在本仓库（单独目录）
+agent-os-lab/
