@@ -2,7 +2,7 @@
 /**
  * agent-os 总控可视化看板 —— 零依赖 Node 服务（端口 9140）
  * 数据源：本目录上级的 INDEX.md（本机实例）+ GLOBAL-MASTER.md + AGENTS.md（总管身份）
- * /api/chat：总控管家对话（某 LLM 服务商 example-model，key 按顺序探测多个 keys.json）
+ * /api/chat：总控管家对话（用户在 ⚙ 设置配置的任意 OpenAI 兼容 API）
  */
 const http = require('http');
 const fs = require('fs');
@@ -65,7 +65,7 @@ function findKey() {
   for (const f of cands) {
     try {
       const j = JSON.parse(fs.readFileSync(f, 'utf8'));
-      for (const k of ['provider', 'PROVIDER', 'provider_api_key', 'PROVIDER_API_KEY', 'apiKey', 'model'])
+      for (const k of ['apiKey', 'api_key', 'token', 'secret', 'key'])
         if (typeof j[k] === 'string' && j[k].length > 20) return { key: j[k], from: f };
       for (const v of Object.values(j))
         if (typeof v === 'string' && v.length > 40 && /^[a-zA-Z0-9.\-_:]+$/.test(v)) return { key: v, from: f };
@@ -79,19 +79,17 @@ const CFG_FILE = path.join(__dirname, 'data', 'config.json');
 function loadCfg() { try { return JSON.parse(fs.readFileSync(CFG_FILE, 'utf8')); } catch { return null; } }
 function saveCfg(c) { fs.mkdirSync(path.dirname(CFG_FILE), { recursive: true }); fs.writeFileSync(CFG_FILE, JSON.stringify(c, null, 2)); }
 
-/* ---------- LLM 端点解析（管家与总揽共用） ---------- */
+/* ---------- LLM 端点：只从用户配置（dashboard/data/config.json）读取，不内置任何厂商 ---------- */
 function llmEndpoint() {
   const cfg = loadCfg();
   if (cfg && cfg.baseURL && cfg.model && cfg.apiKey)
     return { url: cfg.baseURL.replace(/\/+$/, '') + '/chat/completions', key: cfg.apiKey, model: cfg.model };
-  const found = findKey();
-  if (!found) return null;
-  return { url: 'https://https://your-llm-endpoint.example/v1/chat/completions', key: found.key, model: 'example-model' };
+  return null;
 }
 
 async function chat(body) {
   const ep = llmEndpoint();
-  if (!ep) return { ok: false, error: '没找到可用的 API key：右上角「⚙ 设置」里配一个（任何 OpenAI 兼容接口都行），或把某 LLM 服务商 key 存为 dashboard/data/keys.json。' };
+  if (!ep) return { ok: false, error: '没找到可用的 API 配置：右上角「⚙ 设置」里填 API 地址/模型名/密钥（任意 OpenAI 兼容接口都行）。' };
   const { url, key, model } = ep;
   const sys = [
     '你是「总控管家」：运行在 agent-os 可视化看板里的体系总览级 AI 助手。',

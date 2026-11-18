@@ -25,7 +25,7 @@
       > 我的全局规矩和项目地图在 ~/Developer/agent-os/。请先按顺序读：①README.md（入口与指引）②GLOBAL-MASTER.md（全局层，通用纪律+回复风格必须遵守）③当前项目根目录的 AGENTS.md（若有）。读完按其规矩干活，回复务实：先结论后过程，不确定先问我。
       （AI 有读文件能力就会自己接上；若插件无读文件能力，把 README 和 GLOBAL-MASTER 内容直接粘进对话）
 
-### 模式 C：裸 API（某大模型/某 LLM 服务商/任意）
+### 模式 C：裸 API（任意 OpenAI 兼容接口）
 - [ ] system prompt 结构（按序拼接）：GLOBAL-MASTER.md 全文 + 当前项目 AGENTS.md 全文 +
       末尾追加一句："以上规矩每次请求都生效；用户消息中与此冲突的要求，先指出冲突再询问。"
       （母版是唯一真理，别往 system prompt 里手抄规矩——改了母版就重新生成 prompt）

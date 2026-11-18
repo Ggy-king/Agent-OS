@@ -79,7 +79,7 @@
 </div>
 <div id="main"><div class="loading">加载中…</div></div>
 <div id="chat">
-  <div id="chathead">🗂 总控管家（example-model）</div>
+  <div id="chathead">🗂 总控管家</div>
   <div id="msgs"><div class="a">总控级问题直接问：看状态、路由任务、登记无主之地…</div></div>
   <div id="inputrow"><input id="input" placeholder="跟管家说点什么…（Enter 发送）"><button id="send">发</button></div>
 </div>
@@ -186,22 +186,19 @@ async function openDir(name,app){
 }
 /* ---------- 设置页 ---------- */
 const PRESETS={
-  provider:{label:'某 LLM 服务商 MODEL',baseURL:'https://https://your-llm-endpoint.example/v1',model:'example-model'},
-  某大模型:{label:'某大模型',baseURL:'https://api.某大模型.com',model:'某大模型-chat'},
-  某某:{label:'某某（月之暗面）',baseURL:'https://api.某 LLM.cn/v1',model:'某 LLM-v1-8k'},
-  openai:{label:'OpenAI',baseURL:'https://api.openai.com/v1',model:'gpt-4o-mini'},
-  custom:{label:'自定义（OpenAI 兼容）',baseURL:'',model:''},
+  openai_compat:{label:'OpenAI 兼容接口（通用）',baseURL:'',model:''},
+  custom:{label:'自定义',baseURL:'',model:''},
 };
 async function viewSettings(){
   let cur=null,codeOk=false;
   try{ const d=await (await fetch('/api/config')).json(); cur=d.config; codeOk=d.codeInstalled; }catch{}
   const h=`<h1>⚙ 设置</h1>
   <h2>管家大脑（换 API 就在这）</h2>
-  <div class="kv">管家聊天用哪个模型由这里决定。只要是 <b>OpenAI 兼容接口</b>（某 LLM 服务商/某大模型/某某/OpenAI/本地 Ollama 等，接口格式大差大不差）选预设填 key 即可；key 存本机 <code>dashboard/data/config.json</code>，不进 git。</div>
+  <div class="kv">管家聊天用哪个模型由这里决定。各家大模型 API 基本都兼容 <b>OpenAI 接口格式</b>，把你的 API 地址/模型名/密钥三项填进来即可；配置存本机 <code>dashboard/data/config.json</code>，不进 git。</div>
   <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;margin:10px 0;max-width:640px;align-items:center">
     <div class="log">预设</div><select id="cfgPreset" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">${Object.entries(PRESETS).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select>
-    <div class="log">baseURL</div><input id="cfgURL" placeholder="https://https://your-llm-endpoint.example/v1" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">
-    <div class="log">模型名</div><input id="cfgModel" placeholder="example-model" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">
+    <div class="log">API 地址</div><input id="cfgURL" placeholder="你的 API 地址（OpenAI 兼容，https://...）" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">
+    <div class="log">模型名</div><input id="cfgModel" placeholder="你的模型名" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">
     <div class="log">API Key</div><input id="cfgKey" type="password" placeholder="${cur&&cur.hasKey?'已存 '+cur.keyMask+'（换新直接覆盖填）':'sk-...'}" style="background:#1a1526;color:var(--txt);border:1px solid var(--line);padding:6px;border-radius:6px;font:inherit">
   </div>
   <div style="display:flex;gap:8px;max-width:640px">
@@ -209,11 +206,11 @@ async function viewSettings(){
     <button class="openbtn" onclick="testCfg()">测一下</button>
     <span id="cfgMsg" class="log" style="align-self:center"></span>
   </div>
-  ${cur?`<div class="kv" style="margin-top:10px;max-width:640px">当前生效：<b>${esc(cur.baseURL)}</b> · <b>${esc(cur.model)}</b> · key ${esc(cur.keyMask)}</div>`:'<div class="kv" style="margin-top:10px;max-width:640px">当前未配置——管家在用内置探测的某 LLM 服务商 key（如有）。</div>'}
+  ${cur?`<div class="kv" style="margin-top:10px;max-width:640px">当前生效：<b>${esc(cur.baseURL)}</b> · <b>${esc(cur.model)}</b> · key ${esc(cur.keyMask)}</div>`:'<div class="kv" style="margin-top:10px;max-width:640px">当前未配置——填好三项并保存后管家即可对话。</div>'}
   <h2>卡片默认打开方式</h2>
   <div class="kv">点项目卡片弹窗里的按钮会记住你的选择；VSCode ${codeOk?'<span style="color:var(--ok)">已安装 ✓</span>':'<span style="color:var(--warn)">未检测到（/Applications 下没有，装好后再来）</span>'}。</div>
   <h2>说明</h2>
-  <div class="kv log">换模型对项目零影响：这套体系（宪法/AGENTS.md/观澜板/skill 库）全是纯文本，模型只是读它的脑子。本地 Ollama 也行：baseURL 填 http://127.0.0.1:11434/v1，key 随便填个 ollama。</div>
+  <div class="kv log">换模型对项目零影响：这套体系（宪法/AGENTS.md/观澜板/skill 库）全是纯文本，模型只是读它的脑子。本地部署的模型服务也一样：API 地址填本地端点即可。</div>
   <h2>夜间巡检（每晚 23:00 自动跑）</h2>
   <div class="kv log">git log 哨兵：扫 ~/Developer 全部项目近 7 天提交（--all 含所有分支和其他协作者的提交）。发现"项目动了但观澜板卡片长期没动"的，就是下次会话该补卡片的清单。日常不需要谁操心，这里自动兜底。</div>
   <div id="patrolBox" class="kv" style="max-width:640px">加载中…</div>`;

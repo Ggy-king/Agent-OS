@@ -2,7 +2,7 @@
 
 > **Personal AI Operating System in plain text.**
 > 一套纯文本文件：全局宪法 + 项目 AGENTS.md + 观澜板 + skill 指针库。
-> 任何 AI 工具——Claude Code、Codex、Cursor、纯 VSCode、裸 API 调 某大模型——
+> 任何 AI 工具——Claude Code、Codex、Cursor、纯 VSCode、裸 API 调任意大模型——
 > 读了这套文件就能按你的规矩上岗。**工具随时换，真理不动。**
 
 ## 解决什么问题
@@ -65,7 +65,7 @@
 指向本仓库 README，由它带路。核心一句：
 > 我的全局规矩和项目地图在 ~/Developer/agent-os/，先读 README.md，按它的指引干活。
 
-**模式 C：裸 API**（某大模型 / 某 LLM 服务商 / 任意 OpenAI 兼容接口）
+**模式 C：裸 API**（任意 OpenAI 兼容接口）
 → system prompt 拼接规则见 INSTALL.md 模式 C：GLOBAL-MASTER 全文 + 当前项目
 AGENTS.md + 一句"冲突先指出再询问"。母版是唯一真理，别手抄进 prompt。
 
