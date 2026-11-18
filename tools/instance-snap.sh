@@ -19,10 +19,14 @@ case "$1" in
   show) $G show --stat HEAD ;;
   roll)
     shift
-    $G checkout "$1" -- ${=@:-INDEX.md GLOBAL-MASTER.md}
-    echo "已回滚：$*"; echo "（确认无误后建议再跑一次 instance-snap.sh 固化）" ;;
+    [ -n "$($G rev-parse --verify -q HEAD)" ] || { echo "快照库还没有任何提交，无从回滚"; exit 1; }
+    # 裸库下 checkout <hash> -- 文件 不可靠，改用 show 直写；只回滚清单里实际存在的文件
+    for f in ${=FILES}; do
+      $G show "$1:$f" > "$WT/$f" 2>/dev/null && echo "✓ 已回滚 $f" || echo "✗ $f 在 $1 中不存在（跳过）"
+    done
+    echo "回滚目标：$1" ;;
   *)
-    $G add -f ${=FILES} 2>/dev/null
+    for f in ${=FILES}; do [ -e "$WT/$f" ] && $G add -f "$f"; done  # 逐个判断存在性：git add 任一 pathspec 不存在会整体失败
     if $G diff --cached --quiet; then echo "实例无变化，无需快照"
-    else $G commit -q -m "snapshot $(date '+%F %H:%M')" && echo "✓ 已快照：${=FILES}" ; fi ;;
+    else $G commit -q -m "snapshot $(date '+%F %H:%M')" && echo "✓ 已快照" ; fi ;;
 esac

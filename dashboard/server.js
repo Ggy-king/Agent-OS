@@ -183,7 +183,7 @@ const server = http.createServer(async (req, res) => {
     }));
   }
   if (url.pathname === '/api/file') {
-    const MAP = { manual: '使用手册.md', protocol: 'TEST-PROTOCOL.md', office: 'office/AGENTS.md', notes: 'notes/README.md', skills: 'skills/SKILLS.md' };
+    const MAP = { manual: '使用手册.md', protocol: 'TEST-PROTOCOL.md', office: 'office/AGENTS.md', notes: 'notes/README.md', skills: 'skills/SKILLS.md', chains: 'UPDATE-CHAINS.md' };
     const f = MAP[url.searchParams.get('f')];
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     if (!f) return res.end(JSON.stringify({ ok: false, error: '未知文件' }));
@@ -256,6 +256,14 @@ const server = http.createServer(async (req, res) => {
     if (url.searchParams.get('run') === '1') return res.end(JSON.stringify({ ok: true, report: runPatrol() }));
     try { return res.end(JSON.stringify({ ok: true, report: JSON.parse(read(PATROL_FILE)) })); }
     catch { return res.end(JSON.stringify({ ok: false, error: '还没有巡检报告' })); }
+  }
+  /* 实例快照手动触发 */
+  if (url.pathname === '/api/snap' && req.method === 'POST') {
+    exec(`"${path.join(__dirname, '..', 'tools', 'instance-snap.sh')}"`, { cwd: ROOT }, (e, out) => {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(e ? { ok: false, error: String(e).slice(0, 120) } : { ok: true, msg: (out || '').trim().split('\n')[0] || '已快照' }));
+    });
+    return;
   }
   /* 卡片打开目录：code / finder / terminal */
   if (url.pathname === '/api/open' && req.method === 'POST') {

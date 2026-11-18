@@ -33,7 +33,7 @@
 - （填：项目 A ↔ 项目 B：关系一句话。没有就删本节）
 
 ## 全局 skill 库
-- 位置：本目录 skills/（索引 SKILLS.md）。**全局只登记一次，项目要用需在其 AGENTS.md 显式登记指针**——指针式继承，天生实时，无需同步
+- 位置：~/Developer/agent-os/skills/（索引 SKILLS.md）。**全局只登记一次，项目要用需在其 AGENTS.md 显式登记指针**——指针式继承，天生实时，无需同步
 - 当前可用：（填 skill 名+一句话；清单细节在 skills/SKILLS.md）
 
 ## 观澜板维护
