@@ -8,7 +8,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..');
-const PORT = 9140;
+const PORT = process.env.AO_PORT || 9140; // AO_PORT 供测试/多实例
 const read = f => { try { return fs.readFileSync(f, 'utf8'); } catch { return ''; } };
 
 /* ---------- INDEX.md 解析：大区/分组/卡片行 ---------- */
@@ -155,8 +155,17 @@ function runPatrol() {
         last: (log.split('\n')[0] || '').slice(0, 70) });
     } catch (e) { results.push({ name, git: true, commits7d: 0, error: String(e).slice(0, 60) }); }
   }
+  /* 规矩文件体检：随巡检跑（休眠补跑自动同享）；报告只存摘要，全量看 /api/rulescan */
+  let rules = null;
+  try { rules = JSON.parse(execSync(`"${process.execPath}" "${path.join(__dirname, '..', 'tools', 'rule-scan.js')}"`, { encoding: 'utf8', timeout: 60000 })); } catch {}
+  const rulesSummary = rules ? {
+    at: rules.at,
+    tools: rules.global.map(g => ({ name: g.name, status: g.status })),
+    reds: rules.projects.filter(p => p.status === 'red').map(p => p.name),
+    events: rules.projects.reduce((n, p) => n + p.events.new.length + p.events.gone.length + p.events.changed.length, 0),
+  } : null;
   const report = { at: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
-    date: new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10), projects: results };
+    date: new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10), projects: results, rules: rulesSummary };
   fs.mkdirSync(path.dirname(PATROL_FILE), { recursive: true });
   fs.writeFileSync(PATROL_FILE, JSON.stringify(report, null, 2));
   exec(`"${path.join(__dirname, '..', 'tools', 'instance-snap.sh')}"`, () => {}); // 顺手固化实例快照
@@ -263,6 +272,16 @@ const server = http.createServer(async (req, res) => {
     exec(`"${path.join(__dirname, '..', 'tools', 'instance-snap.sh')}"`, { cwd: ROOT }, (e, out) => {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(e ? { ok: false, error: String(e).slice(0, 120) } : { ok: true, msg: (out || '').trim().split('\n')[0] || '已快照' }));
+    });
+    return;
+  }
+  /* 规矩文件体检：现场跑一次机械扫描（零 token），返回全量 JSON */
+  if (url.pathname === '/api/rulescan') {
+    exec(`"${process.execPath}" "${path.join(__dirname, '..', 'tools', 'rule-scan.js')}"`, { encoding: 'utf8', timeout: 60000 }, (e, out) => {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      if (e) return res.end(JSON.stringify({ ok: false, error: String(e).slice(0, 120) }));
+      try { res.end(JSON.stringify({ ok: true, scan: JSON.parse(out) })); }
+      catch { res.end(JSON.stringify({ ok: false, error: '扫描输出异常' })); }
     });
     return;
   }

@@ -125,10 +125,12 @@ function viewChains(){
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
     <button class="openbtn" title="git log 扫描 ~/Developer 全部项目近 7 天提交，生成巡检报告。免费：每晚 23 点也会自动跑，这是手动版" onclick="renderPatrol(true)">🌙 立即巡检</button>
     <button class="openbtn" title="把观澜板/宪法等本机实例固化进本地快照库（~/.agent-instances.git），改坏了可回滚。免费：每晚随巡检也会自动跑" onclick="runSnap()">📸 立即快照</button>
+    <button class="openbtn" title="查两件事：①各 AI 工具的影子是否与宪法同步（过期/裸奔亮灯）②各项目规矩文件有无复制品漂移、有无新文件冒出来。免费：零 token 机械扫描，每晚随巡检自动跑" onclick="loadRuleScan()">🧭 规矩体检</button>
     <button class="openbtn" title="AI 读全部项目的 AGENTS.md + office/notes，生成 ≤3000 字的全局总揽——烧一点 token，点一次跑一次" onclick="runSummary()">🧠 更新总揽</button>
   </div>
-  <div class="kv log">🌙📸 免费：巡检=每晚自动跑的 git log 哨兵的手动版；快照=给本机实例上保险（可回滚）。🧠 烧一点 token：把所有项目现状汇总成一页总揽，想看全局时点，平时不用点。</div>
+  <div class="kv log">🌙📸🧭 免费：巡检=每晚自动跑的 git log 哨兵的手动版；快照=给本机实例上保险（可回滚）；规矩体检=查影子同步+规矩文件漂移（零 token 机械扫描）。🧠 烧一点 token：把所有项目现状汇总成一页总揽，想看全局时点，平时不用点。</div>
   <div id="maintMsg" class="log"></div>
+  <h2>规矩文件体检</h2><div id="rulesBody"><div class="loading">加载中…</div></div>
   <h2>全局总揽</h2><div class="md" id="summaryBody"><div class="loading">还没生成过——点上面 🧠 更新总揽</div></div>
   <h2>更新链全景</h2><div class="md" id="fbody"><div class="loading">加载中…</div></div>
   <h2>编辑器口子</h2>
@@ -148,6 +150,36 @@ async function runSnap(){
     const r=await (await fetch('/api/snap')).json();
     m.innerHTML=r.ok?'<span style="color:var(--ok)">✓ '+esc(r.msg)+'</span>':'<span style="color:var(--warn)">'+esc(r.error||'失败')+'</span>';
   }catch(e){ m.innerHTML='<span style="color:var(--warn)">'+esc(String(e))+'</span>'; }
+}
+async function loadRuleScan(){
+  const b=document.getElementById('rulesBody'); if(!b)return;
+  b.innerHTML='<div class="loading">机械扫描中（零 token）…</div>';
+  try{
+    const d=await (await fetch('/api/rulescan')).json();
+    if(!d.ok){ b.innerHTML='<span style="color:var(--warn)">'+esc(d.error||'失败')+'</span>'; return; }
+    const r=d.scan;
+    const gi=s=>s==='ok'?'🟢':s==='stale'?'🟡':s==='missing'?'🔴':'—';
+    const pi=s=>s==='ok'?'🟢':s==='red'?'🔴':'⚪';
+    let h='<div class="kv log">扫描于 '+esc(r.at)+' · 项目根：'+esc(r.root)+' · 零 token 机械扫描 · 每晚随巡检自动跑（休眠错过会补跑）</div>';
+    h+='<h3>全局影子</h3>';
+    h+=r.global.map(g=>{
+      const note=g.status==='stale'?'<span style="color:var(--warn)">过期：跑 tools/sync-shadows.sh</span>'
+        :g.status==='missing'?'<span style="color:var(--warn)">已装但没影子（裸奔）：跑 tools/sync-shadows.sh</span>'
+        :g.status==='absent'?'未安装':'<span style="color:var(--ok)">已同步</span>';
+      return `<div class="log">· ${gi(g.status)} <b>${esc(g.name)}</b> ${esc(g.shadow)} ${note}</div>`;
+    }).join('');
+    const reds=r.projects.filter(p=>p.status==='red');
+    h+='<h3>项目层（'+r.projects.length+' 个'+(reds.length?`，<span style="color:var(--warn)">${reds.length} 个红灯</span>`:'')+'）</h3>';
+    h+=r.projects.map(p=>{
+      const fl=p.files.length?p.files.map(f=>f.role==='authority'?'<span class="badge has">'+esc(f.file)+' 权威</span>':f.role==='pointer'?'<span class="badge has">'+esc(f.file)+' 指针</span>':f.role==='copy'?'<span class="badge draft">'+esc(f.file)+' 复制品!</span>':'<span class="badge">'+esc(f.file)+'</span>').join(''):'<span class="log">无规矩文件</span>';
+      const ev=[...(p.events.new||[]).map(x=>'新出现:'+x),...(p.events.gone||[]).map(x=>'消失:'+x),...(p.events.changed||[]).map(x=>'变更:'+x)];
+      return `<div class="kv">${pi(p.status)} <b>${esc(p.name)}</b> ${fl}${ev.length?` <span style="color:var(--warn)">⇡ ${esc(ev.join(' · '))}</span>`:''}`+
+        (p.unknown&&p.unknown.length?`<div class="log">未知候选：${esc(p.unknown.join('、'))}——确认是某 AI 工具的规矩文件后，加进 tools/ai-registry.json</div>`:'')+
+        (p.status==='red'?'<div class="log" style="color:var(--warn)">复制品=漂移风险：对任意 AI 说"把它改成一行指针 @AGENTS.md"或删除，复扫即转绿</div>':'')+
+        `</div>`;
+    }).join('');
+    b.innerHTML=h;
+  }catch(e){ b.innerHTML='<span style="color:var(--warn)">加载失败 '+esc(String(e))+'</span>'; }
 }
 
 function viewBoard(){
@@ -284,7 +316,7 @@ function show(v){
       const b=document.getElementById('fbody');
       if(b) b.innerHTML=d.ok?md(d.text):'<div class="err">'+esc(d.error)+'</div>';
     }).catch(e=>{const b=document.getElementById('fbody'); if(b)b.innerHTML='<div class="err">'+e+'</div>'}); }
-  if(v==='chains')loadSummary();
+  if(v==='chains'){loadSummary();loadRuleScan();}
 }
 async function loadSummary(){
   try{ const r=await(await fetch('/api/summary')).json(); const b=document.getElementById('summaryBody');

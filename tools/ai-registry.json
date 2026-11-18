@@ -1,0 +1,33 @@
+{
+  "_说明": "AI 工具注册表（纯数据）。接新工具=加一条 tools 记录 + project_files 补文件名；whitelist_md 是项目根目录 .md 白名单（不算未知候选），*.template.md 后缀通用豁免。",
+  "tools": [
+    { "name": "claude", "detect": { "dirs": ["~/.claude"], "cmds": ["claude"] }, "shadow": "~/.claude/CLAUDE.md" },
+    { "name": "codex", "detect": { "dirs": ["~/.codex"], "cmds": ["codex"] }, "shadow": "~/.codex/AGENTS.md" },
+    { "name": "gemini", "detect": { "dirs": ["~/.gemini"], "cmds": ["gemini"] }, "shadow": "~/.gemini/GEMINI.md" }
+  ],
+  "project_files": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    ".cursorrules",
+    ".windsurfrules",
+    ".github/copilot-instructions.md"
+  ],
+  "project_dirs": [".cursor/rules", ".windsurf/rules"],
+  "whitelist_md": [
+    "README.md",
+    "CHANGELOG.md",
+    "TODO.md",
+    "DESIGN.md",
+    "使用手册.md",
+    "MANUAL.md",
+    "INSTALL.md",
+    "TEST-PROTOCOL.md",
+    "ROADMAP.md",
+    "SUMMARY.md",
+    "RULE-SCAN-DESIGN.md",
+    "UPDATE-CHAINS.md",
+    "GLOBAL-MASTER.md",
+    "INDEX.md"
+  ]
+}
