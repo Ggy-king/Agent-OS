@@ -121,15 +121,26 @@ function md(t){
 const FILEMAP={manual:'使用手册.md',protocol:'TEST-PROTOCOL.md',office:'office/AGENTS.md',notes:'notes/README.md',skills:'skills/SKILLS.md',chains:'UPDATE-CHAINS.md'};
 function viewChains(){
   return `<h1>🔧 维护（更新逻辑链）</h1><div class="sub">谁更新什么、怎么更新、要不要烧 token——口诀：<b>改宪法→刷影子；改项目→观澜板；其它全自动</b></div>
-  <h2>快捷动作（不烧 token）</h2>
+  <h2>快捷动作</h2>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
-    <button class="openbtn" onclick="renderPatrol(true)">🌙 立即巡检</button>
-    <button class="openbtn" onclick="runSnap()">📸 立即快照</button>
-  </div><div id="maintMsg" class="log"></div>
-  <h2>更新链全景</h2><div class="md" id="chainsBody"><div class="loading">加载中…</div></div>
+    <button class="openbtn" title="git log 扫描 ~/Developer 全部项目近 7 天提交，生成巡检报告。免费：每晚 23 点也会自动跑，这是手动版" onclick="renderPatrol(true)">🌙 立即巡检</button>
+    <button class="openbtn" title="把观澜板/宪法等本机实例固化进本地快照库（~/.agent-instances.git），改坏了可回滚。免费：每晚随巡检也会自动跑" onclick="runSnap()">📸 立即快照</button>
+    <button class="openbtn" title="AI 读全部项目的 AGENTS.md + office/notes，生成 ≤3000 字的全局总揽——烧一点 token，点一次跑一次" onclick="runSummary()">🧠 更新总揽</button>
+  </div>
+  <div class="kv log">🌙📸 免费：巡检=每晚自动跑的 git log 哨兵的手动版；快照=给本机实例上保险（可回滚）。🧠 烧一点 token：把所有项目现状汇总成一页总揽，想看全局时点，平时不用点。</div>
+  <div id="maintMsg" class="log"></div>
+  <h2>全局总揽</h2><div class="md" id="summaryBody"><div class="loading">还没生成过——点上面 🧠 更新总揽</div></div>
+  <h2>更新链全景</h2><div class="md" id="fbody"><div class="loading">加载中…</div></div>
   <h2>编辑器口子</h2>
   <div class="kv log">不在看板接 API 时：上表 AI 更新项的 📋 话术复制给任何编辑器里的 AI 会话即可触发——话术=接口，工具无关。</div>`;
-  fetch('/api/file?f=chains').then(r=>r.json()).then(d=>{ const b=document.getElementById('chainsBody'); if(b) b.innerHTML=d.ok?md(d.text):'<div class="err">'+esc(d.error)+'</div>'; });
+}
+async function runSummary(){
+  const m=document.getElementById('maintMsg'); m.textContent='总揽生成中（AI 读全部项目，约 10-30 秒）…';
+  try{
+    const r=await (await fetch('/api/summary',{method:'POST'})).json();
+    if(r.ok){ m.innerHTML='<span style="color:var(--ok)">✓ 总揽已更新（'+esc(r.at)+'）</span>'; const b=document.getElementById('summaryBody'); if(b) b.innerHTML=md(r.summary); }
+    else m.innerHTML='<span style="color:var(--warn)">'+esc(r.error||'失败')+'</span>';
+  }catch(e){ m.innerHTML='<span style="color:var(--warn)">失败：'+esc(String(e))+'</span>'; }
 }
 async function runSnap(){
   const m=document.getElementById('maintMsg'); m.textContent='快照中…';
@@ -276,6 +287,11 @@ function show(v){
       const b=document.getElementById('fbody');
       if(b) b.innerHTML=d.ok?md(d.text):'<div class="err">'+esc(d.error)+'</div>';
     }).catch(e=>{const b=document.getElementById('fbody'); if(b)b.innerHTML='<div class="err">'+e+'</div>'}); }
+  if(v==='chains')loadSummary();
+}
+async function loadSummary(){
+  try{ const r=await(await fetch('/api/summary')).json(); const b=document.getElementById('summaryBody');
+    if(b&&r.ok) b.innerHTML=md(r.summary)+'<div class="log">生成于 '+esc(r.at)+'</div>'; }catch{}
 }
 document.querySelectorAll('#nav .item').forEach(el=>el.onclick=()=>show(el.dataset.v));
 async function boot(){

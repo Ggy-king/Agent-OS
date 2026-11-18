@@ -9,6 +9,9 @@ agent-os-lab/
 dashboard/data/
 dashboard/*.log
 
+# 生成的本机产物（总揽师输出，点按钮才更新）
+SUMMARY.md
+
 # Python 缓存
 __pycache__/
 

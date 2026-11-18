@@ -79,17 +79,20 @@ const CFG_FILE = path.join(__dirname, 'data', 'config.json');
 function loadCfg() { try { return JSON.parse(fs.readFileSync(CFG_FILE, 'utf8')); } catch { return null; } }
 function saveCfg(c) { fs.mkdirSync(path.dirname(CFG_FILE), { recursive: true }); fs.writeFileSync(CFG_FILE, JSON.stringify(c, null, 2)); }
 
-async function chat(body) {
+/* ---------- LLM 端点解析（管家与总揽共用） ---------- */
+function llmEndpoint() {
   const cfg = loadCfg();
-  let url, key, model;
-  if (cfg && cfg.baseURL && cfg.model && cfg.apiKey) {
-    url = cfg.baseURL.replace(/\/+$/, '') + '/chat/completions';
-    key = cfg.apiKey; model = cfg.model;
-  } else {
-    const found = findKey();
-    if (!found) return { ok: false, error: '没找到可用的 API key：右上角「⚙ 设置」里配一个（任何 OpenAI 兼容接口都行），或把某 LLM 服务商 key 存为 dashboard/data/keys.json。' };
-    url = 'https://https://your-llm-endpoint.example/v1/chat/completions'; key = found.key; model = 'example-model';
-  }
+  if (cfg && cfg.baseURL && cfg.model && cfg.apiKey)
+    return { url: cfg.baseURL.replace(/\/+$/, '') + '/chat/completions', key: cfg.apiKey, model: cfg.model };
+  const found = findKey();
+  if (!found) return null;
+  return { url: 'https://https://your-llm-endpoint.example/v1/chat/completions', key: found.key, model: 'example-model' };
+}
+
+async function chat(body) {
+  const ep = llmEndpoint();
+  if (!ep) return { ok: false, error: '没找到可用的 API key：右上角「⚙ 设置」里配一个（任何 OpenAI 兼容接口都行），或把某 LLM 服务商 key 存为 dashboard/data/keys.json。' };
+  const { url, key, model } = ep;
   const sys = [
     '你是「总控管家」：运行在 agent-os 可视化看板里的体系总览级 AI 助手。',
     '你的职责边界：回答总控级问题（体系状态/项目路由/规矩解释/无主之地登记建议）+ 日常问答。',
@@ -264,6 +267,48 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify(e ? { ok: false, error: String(e).slice(0, 120) } : { ok: true, msg: (out || '').trim().split('\n')[0] || '已快照' }));
     });
     return;
+  }
+  /* 全局总揽：GET 读已有；POST 让 AI 读全部项目 AGENTS.md+office/notes 生成 ≤3000 字总揽 */
+  if (url.pathname === '/api/summary') {
+    const SUM = path.join(ROOT, 'SUMMARY.md');
+    if (req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      const t = read(SUM);
+      return res.end(JSON.stringify(t ? { ok: true, summary: t, at: fs.statSync(SUM).mtime.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) } : { ok: false, error: '还没生成过' }));
+    }
+    if (req.method === 'POST') {
+      const ep = llmEndpoint();
+      if (!ep) { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); return res.end(JSON.stringify({ ok: false, error: '没有可用 API key（⚙ 设置里配一个）' })); }
+      // 收集材料：观澜板 + 每个项目 AGENTS.md 前 40 行 + office/notes
+      const dev = path.join(process.env.HOME || '', 'Developer');
+      let mats = '【观澜板（项目全景）】\n' + read(path.join(ROOT, 'INDEX.md'));
+      try {
+        for (const name of fs.readdirSync(dev)) {
+          const a = path.join(dev, name, 'AGENTS.md');
+          if (name.startsWith('.') || !fs.existsSync(a)) continue;
+          mats += `\n【项目 ${name}】\n` + read(a).split('\n').slice(0, 40).join('\n');
+        }
+      } catch {}
+      mats += '\n【office 域】\n' + read(path.join(ROOT, 'office', 'AGENTS.md')) + '\n【notes 捕获站】\n' + read(path.join(ROOT, 'notes', 'README.md'));
+      fetch(ep.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ep.key },
+        body: JSON.stringify({ model: ep.model, stream: false, messages: [{ role: 'user', content:
+          '你是"总揽师"。基于以下材料，生成一份不超过 3000 字的全局总揽（简体中文）：\n' +
+          '1) 每个项目一段：它是什么+当前状态+近期值得注意的点（各 2-3 句）\n' +
+          '2) 项目之间的关联与依赖\n' +
+          '3) office/notes 的动态与待分流事项\n' +
+          '4) 结尾一节"近期全景一句话"\n直接输出正文（Markdown，可用小节标题），不要开场白。\n\n==== 材料 ====\n' + mats }] }),
+      }).then(async r => {
+        const j = await r.json();
+        if (!(j.choices && j.choices[0])) { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); return res.end(JSON.stringify({ ok: false, error: JSON.stringify(j).slice(0, 200) })); }
+        const summary = j.choices[0].message.content;
+        fs.writeFileSync(SUM, summary);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true, summary, at: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) }));
+      }).catch(e => { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify({ ok: false, error: String(e).slice(0, 150) })); });
+      return;
+    }
   }
   /* 卡片打开目录：code / finder / terminal */
   if (url.pathname === '/api/open' && req.method === 'POST') {
