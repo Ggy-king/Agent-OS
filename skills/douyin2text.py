@@ -6,8 +6,25 @@
 "Fresh cookies" 报错对抖音是误导——真死因是 a_bogus 签名过期，社区实证
 绕行路 = 请求 iesdouyin.com/share/video/{id} 解析 _ROUTER_DATA 拿真实直链）
 """
-import sys, os, glob, re, json, subprocess, tempfile, argparse, urllib.request
+import sys, os, glob, re, json, subprocess, tempfile, argparse, urllib.request, shutil
 os.environ.setdefault('HF_ENDPOINT', 'https://hf-mirror.com')  # HuggingFace 国内镜像，模型下载不走它必超时
+
+def _ensure_env():
+    """转写依赖自检：缺了就自动切到实战验证过的 brew python3.12 重启自己。
+    红线：本机依赖已全部就绪（见 skills/douyin-free.md），禁止 pip install。"""
+    try:
+        import faster_whisper  # noqa: F401
+        return
+    except ImportError:
+        pass
+    if os.environ.get('DOUYIN2TEXT_REEXEC'):  # 已切过还缺 → 停手报告，绝不装包
+        sys.exit('转写依赖缺失：请用 /opt/homebrew/bin/python3.12 运行本脚本（禁止 pip install，先报告用户）')
+    for p in ('/opt/homebrew/bin/python3.12', shutil.which('python3.12')):
+        if p and os.path.exists(p):
+            print('⚠ 当前解释器缺转写依赖，自动切换已就绪的 python3.12（禁止 pip install）', file=sys.stderr)
+            os.environ['DOUYIN2TEXT_REEXEC'] = '1'
+            os.execv(p, [p, os.path.abspath(__file__)] + sys.argv[1:])
+    sys.exit('找不到 python3.12：请用 /opt/homebrew/bin/python3.12 运行（禁止 pip install，先报告用户）')
 
 UA_PC = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
          'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36')
@@ -109,6 +126,7 @@ def share_page_download(url, d):
     return audio, desc
 
 def main():
+    _ensure_env()
     ap = argparse.ArgumentParser(description='视频链接转文案（本地免费）')
     ap.add_argument('url', help='抖音分享链接（v.douyin.com 短链）/B站/YouTube 等任意 yt-dlp 支持链接')
     ap.add_argument('--model', default='base', help='whisper 模型：base(150MB,默认)/small/medium，越大越准越慢')

@@ -1,38 +1,40 @@
-# 抖音链接转文案 —— 免费方案（替代付费的 LinkDigest）
+# 抖音链接转文案（已验证唯一方案，替代付费的 LinkDigest）
 
-> 用户裁决：付费不做。以下方案全部免费、本地跑、数据不出门。
-> 共同原理：yt-dlp 解析抖音短链（v.douyin.com 自动展开）→ 下载视频/音频 →
-> faster-whisper 本地语音转文字。抖音几乎没现成字幕，所以转写是保底路径。
+> 本文档只有一个方案：下面这个自研脚本，真实链接全链路实测通过。
+> 调研阶段的其他候选方案已按"只留验证成功的"原则清除——别找第二个方案，跑不通按协议报错给用户。
 
-## 候选方案（按推荐排序）
+## ⚡ 运行协议（AI 第一眼必读，先于一切）
 
-### ① video-to-text（agent skill，最贴近咱的体系）
-- 来源：SkillsMP（bennytsai1234）社区 skill
-- 设计聪明点：**能抓现成字幕就绝不浪费算力**——YouTube/B 站直接抓字幕秒出；
-  抖音没字幕才走本地语音识别保底
-- 依赖：yt-dlp、ffmpeg、faster-whisper（脚本启动自动检查，缺什么明确提示）
-- 支持 v.douyin.com 短链自动展开
+运行前先看下方【运行记录】判断自己是第几次运行：
 
-### ② 抖音视频解析（SkillHub 社区 skill）
-- 来源：SkillHub @indiv-black_amico/douyin-video-parser v1.5.0（免费）
-- 全链路一条命令：拿直链 → 下载 → 转写 → 分析 → 输出带时间戳逐字稿+连贯稿+HTML 报告
+- **有记录 = 你是第 N 次运行**：环境已被前次验证，直接照记录里的命令跑（解释器都是钉死的）。
+  🚫 **禁止 pip install / 升级任何东西**。跑不通 → 报错原样给用户，经用户许可后才把新坑追加进记录。
+- **无记录 = 你是第一次运行**：跑完后必须把本次实战结果（实际命令含解释器绝对路径 / 依赖及版本 / 踩的坑）**正式追加进【运行记录】**——你踩的坑就是后面所有 AI 的起点。
+- 换了新电脑？台账里是别的机器的环境，别照抄——**点名"跑换机适配"**（见 [换机适配.md](换机适配.md)），一次性把全库 skill 适配到本机。
 
-### ③ Video DL & Transcribe（GUI 工具，不想碰命令行时用）
-- 来源：github.com/CokeloveMiyo/vedio
-- 图形界面双击即用；支持 YouTube/B站/抖音（自动从分享文案提取链接）
-- 数据不上云；转写模型 base 约 150MB 首次自动下载
-- 注意：作者主推 Windows（macOS 可用命令行方式跑）
+## 原理（一句话）
 
-## 本机接入状态
+yt-dlp 解析抖音短链 → 下载音频；yt-dlp 被反爬拒了走分享页解析兜底 → faster-whisper 本地转文字（免费、数据不出门）。脚本三通道全自动，调用方只管给链接。
 
-- ✅ **已装可用**（2026-11-17）：方案①的精简自研版 `douyin2text.py`，真实抖音链接实测全链路通过（下载→转录→文案）
-- 依赖实装：ffmpeg 9.0.2（brew）、yt-dlp 2026.10.26（python3.12 pip --user）、faster-whisper（pip --user）
-- 用法：`python3 skills/douyin2text.py <链接> [--model small]`，输出=视频标题+口播文案
+## 本机接入状态（⚠ 先读红线再用）
 
-## 实战记录（2026-11-17 首战，4 个坑全踩过）
+- ✅ **已装可用**（2026-11-17 真实链接全链路实测；2026-11-18 环境快照复核）
+- **唯一解释器：`/opt/homebrew/bin/python3.12`**（系统 python3=3.9.6 是裸的，用了必报错）
+- 环境快照（全部实装在 3.12 --user，`~/Library/Python/3.12/`）：yt-dlp 2026.10.26 · faster-whisper 1.2.1 · PyAV 19.0.2 · ffmpeg 9.0.2（brew）
+- **跑前 10 秒自检**（通过=环境就绪，直接跑）：
+  `/opt/homebrew/bin/python3.12 -c "import yt_dlp, faster_whisper, av; print('环境就绪')"`
+- 用法（照抄，别换解释器）：`/opt/homebrew/bin/python3.12 skills/douyin2text.py <链接> [--model small]`
 
-1. **系统 Python 3.9 锁死 yt-dlp 老版本**→ 用 brew 的 python3.12 `pip install --user --break-system-packages` 装新版；脚本自动探测新版解释器
-2. **"Fresh cookies needed" 报错是误导**：yt-dlp 抛它时根本没查 cookie，真死因=抖音 a_bogus 签名算法更新（yt-dlp 已知回归，curl_cffi TLS 伪装也救不了）→ **绕行路=iesdouyin.com/share/video/{id} 分享页解析**（脚本已内置为第三通道）
-3. **分享页必须手机 UA** 才吐 SSR 数据（`window._ROUTER_DATA` JSON），桌面 UA 只回 JS 壳；cookie 借 yt-dlp 的 Chrome 解密机制（`extract_cookies_from_browser`）
-4. **HuggingFace 下载模型国内超时** → 脚本内置 `HF_ENDPOINT=https://hf-mirror.com` 国内镜像
-5. 网络卡顿记得走本机代理（端口见全局层纪律的本机实例，各机不同）
+## 🚫 红线（给 AI 看的，违反=事故）
+
+1. **禁止 pip install 任何东西**——本机依赖 2026-11-17 全链路实测过、2026-11-18 快照复核过，一个都不缺
+2. **禁止升级/降级依赖（包括 PyAV）**——现版本组合是实测验证过的，动版本=破坏已验证环境
+3. 跑不通 → **原样把报错给用户**，等用户裁决；自作主张装依赖=烧钱且污染环境（2026-11-18 实际事故：一次误用重装了 4 个包）
+
+## 运行记录（台账：每次运行追加一条，后来的 AI 从这里开始）
+
+- **2026-11-17 · 第 1 次运行**（真实抖音链接，下载→转写→文案全链路通）
+  - 命令：`/opt/homebrew/bin/python3.12 skills/douyin2text.py <链接> [--model small]`（唯一解释器，系统 python3=3.9.6 没有 yt-dlp，用了必报错）
+  - 环境（3.12 --user）：yt-dlp 2026.10.26 · faster-whisper 1.2.1 · PyAV 19.0.2 · ffmpeg 9.0.2（brew）
+  - 坑：①"Fresh cookies needed"报错是误导，真死因=抖音 a_bogus 签名过期 → 绕行路=分享页解析（脚本已内置第三通道）②分享页必须手机 UA 才吐 SSR 数据 ③HF 模型下载国内超时 → 脚本内置 hf-mirror 镜像 ④网络卡顿走本机代理（端口见全局层纪律本机实例）
+- **2026-11-18 · 环境复核**：自检命令通过（`import yt_dlp, faster_whisper, av` 全过），快照与首次一致。教训：一次外部 AI 会话误判"依赖缺失"连装 4 包（烧 $5.61）→ 已在顶部立禁装协议+脚本内置防呆守卫
