@@ -23,6 +23,7 @@
 | karpathy 四原则 | ✅ 已装（原文入库 2026-11-17） | 编码任务默认遵守/点名 | 治 AI 编码通病：瞎猜/过度设计/顺手乱改/无验证标准（97.8k 星） | [karpathy.md](karpathy.md) |
 | markitdown（微软开源） | ✅ 已装实测（xlsx→md 表格无损，2026-11-17） | 点名："把 xx 转成 md" | Word/PDF/PPT/Excel 一键转 Markdown，喂 AI 前先转 | `pip install 'markitdown[xlsx,pdf,docx]'` 后命令 `markitdown <文件>`（装在哪台机器路径各异） |
 | 换机适配（库级流程） | ✅ 已建（2026-11-18） | 换新电脑后点名："跑换机适配" | 一次性把全库 skill 逐个探测/实测/回写台账，适配新机器——改一次全库干净 | [换机适配.md](换机适配.md) |
+| agent-desktop（桌面操控） | ⚠ 已装待授权（2026-11-21，v1.3.1） | 点名："操作桌面/帮我在 xx 应用里点/填" | AI 读无障碍树操作 GUI：ref 编号精确点击/输入，不动鼠标不抢焦点；官方指南指针式拉取 | [agent-desktop.md](agent-desktop.md) |
 
 ## 候选区（看好但未实测，亲测后才转正——登记纪律）
 
