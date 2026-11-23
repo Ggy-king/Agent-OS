@@ -168,19 +168,25 @@ function runPatrol() {
     date: new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10), projects: results, rules: rulesSummary };
   fs.mkdirSync(path.dirname(PATROL_FILE), { recursive: true });
   fs.writeFileSync(PATROL_FILE, JSON.stringify(report, null, 2));
-  exec(`"${path.join(__dirname, '..', 'tools', 'instance-snap.sh')}"`, () => {}); // 顺手固化实例快照
+  exec(`"${path.join(__dirname, '..', 'tools', 'instance-snap.sh')}"`, { cwd: ROOT }, () => {}); // 顺手固化实例快照（必须传 cwd：脚本 git pathspec 按工作树根解析，launchd 下 cwd=dashboard/ 会全部 add 失败且静默）
   return report;
 }
-setInterval(() => { // 每天 23:00 后跑一次（按上海时间）；电脑休眠错过时，唤醒后 20 分钟内自动补跑
+const STALE_MS = 6 * 3600e3; // 新鲜度兜底：巡检报告超过 6 小时即视为陈旧。无论崩溃/休眠/漏跑/垫底占名额，任何原因导致报告过期，下个周期自动补跑；补跑失败 mtime 不变，20 分钟后天然重试——自检自愈，无需历史文件
+const patrolStale = () => { try { return Date.now() - fs.statSync(PATROL_FILE).mtimeMs > STALE_MS; } catch { return true; } };
+
+setInterval(() => { // 23:00 锚点正跑（按上海时间）；报告陈旧（>6h）则兜底补跑
   const now = new Date(Date.now() + 8 * 3600e3);
   const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
   const done = (() => { try { return JSON.parse(read(PATROL_FILE)).date; } catch { return ''; } })();
   if (now.getUTCHours() >= 23 && done !== today) {
     console.log('[夜间巡检] 开始…' + (now.getUTCHours() > 23 ? '（休眠错过，唤醒后补跑）' : ''));
     runPatrol();
+  } else if (patrolStale()) {
+    console.log('[夜间巡检] 报告陈旧（>6h），兜底补跑');
+    runPatrol();
   }
 }, 20 * 60 * 1000);
-runPatrol(); // 启动时先跑一次垫底
+if (patrolStale()) runPatrol(); // 启动垫底：仅报告陈旧才跑——崩溃风暴重启时报告还新鲜，天然不重复巡检
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -344,8 +350,8 @@ const server = http.createServer(async (req, res) => {
   const fp = path.join(__dirname, 'public', path.normalize(file).replace(/^(\.\.[\/\\])+/, ''));
   if (!fp.startsWith(path.join(__dirname, 'public'))) { res.writeHead(403); return res.end('forbidden'); }
   const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
-  try { res.writeHead(200, { 'Content-Type': types[path.extname(fp)] || 'text/plain; charset=utf-8' }); res.end(fs.readFileSync(fp)); }
-  catch { res.writeHead(404); res.end('not found'); }
+  try { const body = fs.readFileSync(fp); res.writeHead(200, { 'Content-Type': types[path.extname(fp)] || 'text/plain; charset=utf-8' }); res.end(body); }
+  catch { try { res.writeHead(404); res.end('not found'); } catch { /* headers 已发出：绝不再抛，此前这里会炸掉整个进程（404 静态文件=崩溃循环根源） */ } }
 });
 
 server.listen(PORT, '127.0.0.1', () => console.log(`[agent-os 看板] http://127.0.0.1:${PORT}  （Ctrl+C 停止）`));
