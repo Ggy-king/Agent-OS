@@ -9,7 +9,7 @@
 | 对象 | 机制 | 频率 |
 |---|---|---|
 | dashboard/data/patrol.json（夜间巡检报告） | 看板内置定时器，git log 扫全项目（休眠错过会补跑） | 每晚 23:00 |
-| dashboard/data/last-rulescan.json（规矩体检快照） | 巡检顺手跑 `tools/rule-scan.js`：全局影子一致性 + 各项目规矩文件判灯/漂移事件；看板 🔧 维护视图可手动看 | 每晚随巡检 |
+| dashboard/data/last-rulescan.json（规矩体检快照） | 巡检顺手跑 `tools/rule-scan.js`：全局影子一致性 + 各项目规矩文件判灯/漂移事件 + AGENTS.md 必备标记点名（清单在 ai-registry.json）；看板 🔧 维护视图可手动看 | 每晚随巡检 |
 | 实例快照（~/.agent-instances.git） | 巡检跑完顺手固化一份；可手动 `tools/instance-snap.sh`（log/show/roll） | 每晚随巡检 |
 | dashboard/dashboard.log | 服务自动写 | 持续 |
 

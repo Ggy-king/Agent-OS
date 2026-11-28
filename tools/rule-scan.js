@@ -4,6 +4,7 @@
  * 两个体检面：
  *   A 全局影子：各 AI 工具的影子文件是否与 GLOBAL-MASTER.md 一致（ok/stale/missing/absent）
  *   B 项目层：各项目根目录规矩文件判灯（🟢权威+指针 / 🔴复制品 / ⚪无文件）+ 与上次快照对比的漂移事件
+ *            + AGENTS.md 必备标记点名（清单在 ai-registry.json 的 agents_markers：规范变更改清单→当晚点名所有没跟上的项目）
  * 用法：
  *   node rule-scan.js                 # JSON 输出（看板/巡检用），并更新快照
  *   node rule-scan.js --text          # 人读文本输出
@@ -83,11 +84,13 @@ function scanProjects() {
     const dir = path.join(PROJECTS_ROOT, name);
     try { if (!fs.statSync(dir).isDirectory()) continue; } catch { continue; }
     const files = [], contentMap = {};
+    let agentsContent = null; // AGENTS.md 原文，供必备标记检查
     for (const f of REG.project_files) {
       const fp = path.join(dir, f);
       if (!fs.existsSync(fp)) continue;
       let content = '';
       try { content = fs.readFileSync(fp, 'utf8'); } catch { continue; }
+      if (f === 'AGENTS.md') agentsContent = content;
       const role = f === 'AGENTS.md' ? 'authority' : isPointer(content) ? 'pointer' : 'copy';
       files.push({ file: f, role, hash: hash(content) });
       contentMap[f] = hash(content);
@@ -109,12 +112,20 @@ function scanProjects() {
       }
     } catch {}
     const hasCopy = files.some((f) => f.role === 'copy');
+    /* 必备标记点名：零 token grep。项目没写 AGENTS.md 的（⚪）不查——gray 已另计 */
+    const markers_missing = [];
+    if (agentsContent !== null) {
+      for (const m of (REG.agents_markers || [])) {
+        if (!agentsContent.includes(m.line)) markers_missing.push(m.line + (m.why ? `（${m.why}）` : ''));
+      }
+    }
     const status = hasCopy ? 'red' : files.length === 0 ? 'gray' : 'ok';
     out.push({
       name,
       status,
       files,
       unknown,
+      markers_missing,
       events: { new: [], gone: [], changed: [] },
       _map: contentMap, // 内部字段，输出前剥掉
     });
@@ -164,7 +175,7 @@ if (TEXT) {
   for (const p of result.projects) {
     const fl = p.files.length ? p.files.map((f) => f.file + (f.role === 'pointer' ? '(指针)' : f.role === 'copy' ? '(复制品!)' : '')).join(' ') : '无规矩文件';
     const ev = [...p.events.new.map((x) => '新:' + x), ...p.events.gone.map((x) => '失:' + x), ...p.events.changed.map((x) => '变:' + x)].join(' ');
-    L.push(`  ${pi(p.status)} ${p.name}  ${fl}${ev ? '  ⇡ ' + ev : ''}${p.unknown.length ? '  [未知候选:' + p.unknown.join(',') + ']' : ''}`);
+    L.push(`  ${pi(p.status)} ${p.name}  ${fl}${ev ? '  ⇡ ' + ev : ''}${p.unknown.length ? '  [未知候选:' + p.unknown.join(',') + ']' : ''}${p.markers_missing.length ? '  [缺标记:' + p.markers_missing.join(' | ') + ']' : ''}`);
   }
   console.log(L.join('\n'));
 } else {

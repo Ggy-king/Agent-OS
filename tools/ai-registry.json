@@ -1,5 +1,5 @@
 {
-  "_说明": "AI 工具注册表（纯数据）。接新工具=加一条 tools 记录 + project_files 补文件名；whitelist_md 是项目根目录 .md 白名单（不算未知候选），*.template.md 后缀通用豁免。",
+  "_说明": "AI 工具注册表（纯数据）。接新工具=加一条 tools 记录 + project_files 补文件名；whitelist_md 是项目根目录 .md 白名单（不算未知候选），*.template.md 后缀通用豁免。agents_markers 是项目 AGENTS.md 必备标记（改动=规范级事件，改这里→当晚巡检自动点名所有没跟上的项目）。",
   "tools": [
     { "name": "claude", "detect": { "dirs": ["~/.claude"], "cmds": ["claude"] }, "shadow": "~/.claude/CLAUDE.md" },
     { "name": "codex", "detect": { "dirs": ["~/.codex"], "cmds": ["codex"] }, "shadow": "~/.codex/AGENTS.md" },
@@ -14,6 +14,9 @@
     ".github/copilot-instructions.md"
   ],
   "project_dirs": [".cursor/rules", ".windsurf/rules"],
+  "agents_markers": [
+    { "line": "GLOBAL-MASTER.md", "why": "全局宪法指针，指针式继承的指路牌，缺了就读不到最新通用纪律" }
+  ],
   "whitelist_md": [
     "README.md",
     "CHANGELOG.md",

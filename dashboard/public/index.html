@@ -175,6 +175,7 @@ async function loadRuleScan(){
       const ev=[...(p.events.new||[]).map(x=>'新出现:'+x),...(p.events.gone||[]).map(x=>'消失:'+x),...(p.events.changed||[]).map(x=>'变更:'+x)];
       return `<div class="kv">${pi(p.status)} <b>${esc(p.name)}</b> ${fl}${ev.length?` <span style="color:var(--warn)">⇡ ${esc(ev.join(' · '))}</span>`:''}`+
         (p.unknown&&p.unknown.length?`<div class="log">未知候选：${esc(p.unknown.join('、'))}——确认是某 AI 工具的规矩文件后，加进 tools/ai-registry.json</div>`:'')+
+        (p.markers_missing&&p.markers_missing.length?`<div class="log" style="color:var(--warn)">缺必备标记：${esc(p.markers_missing.join('；'))}——对 AI 说"按 AGENTS.md 规矩更新你自己"补齐</div>`:'')+
         (p.status==='red'?'<div class="log" style="color:var(--warn)">复制品=漂移风险：对任意 AI 说"把它改成一行指针 @AGENTS.md"或删除，复扫即转绿</div>':'')+
         `</div>`;
     }).join('');
